@@ -1,7 +1,10 @@
 from time import sleep
 from typing import Literal
 import requests
-from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
+from program.utils.hubspot.hubspot_api_exection import (
+    HubspotAPIError,
+    HubspotAPILimitReached,
+)
 
 
 class HubspotResponse:

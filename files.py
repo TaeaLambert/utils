@@ -18,9 +18,6 @@ def write_to_txt(data, path):
 
 
 def csv_to_list(path: Path):
-    # with open("./google_sheet_wrike_export/wrikeTasks.json", "r") as csv_file:
-    #     reader = csv.reader(csv_file)
-    #     return list(reader)
     with open(path, encoding="utf-8") as f:
         reader = csv.reader(f)
         return list(reader)
