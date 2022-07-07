@@ -6,6 +6,8 @@ from program.utils.hubspot.hubspot_api_exection import (
     HubspotAPILimitReached,
 )
 
+# TODO comments
+
 
 class HubspotResponse:
     data: dict

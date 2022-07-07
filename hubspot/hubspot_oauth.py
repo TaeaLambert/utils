@@ -27,6 +27,9 @@ def hubspot_oauth_login(code):
 
 
 def get_access_token(portal_id: int):
+
+    # TODO get access token from mongodb
+
     # token_{portal_id}.json
     # if file does not exists then access token is invalid
     # {"access_token": "asdasdasdsda", "expires_at": "123123123"}
