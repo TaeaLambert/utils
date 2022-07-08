@@ -1,5 +1,5 @@
 import json
-from program.utils.date import relative_date
+from utils.date import relative_date
 
 
 def get_wrike_queary_dates(ahead: int = 6, past: int = 13) -> str:
