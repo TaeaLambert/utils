@@ -14,7 +14,8 @@ from utils.hubspot.hubspot_api_exection import (
 class HubspotResponse:
     data: dict
 
-    def __init__(self, response: requests.Response) -> None:
+    def __init__(self, response: requests.Response, access_token: str) -> None:
+        self.access_token = access_token
         if response.status_code >= 200 and response.status_code <= 299:
             self.data = response.json()
         else:
@@ -33,19 +34,21 @@ class HubspotResponse:
     def next(self) -> "HubspotResponse":
         if not self.has_pagination:
             raise HubspotAPIError("No pagination but calling next!", 400)
-        return hubspot_request(self.results["paging"]["next"]["link"])
+
+        return hubspot_request(self.access_token, self.data["paging"]["next"]["link"])
 
     def get_all_results(self) -> dict:
         """all_results is using the has_pagination property to deternine if there is another
         request that needs to be done to get all the results. It is recursive and will stop
         only when there is no nore pages to the current request"""
-        all_results = [self.results]
+        all_results = self.results
         current_response = self
         while current_response.has_pagination:
             current_response = self.next()
-            all_results.append(current_response.results)
+            for result in current_response.results:
+                all_results.append(result)
 
-        return all_results
+        return {"results": all_results}
 
 
 def hubspot_request(
@@ -73,4 +76,4 @@ def hubspot_request(
         sleep(5)
         hubspot_request(url, verb, nb_retry + 1, **kwargs)
 
-    return HubspotResponse(response)
+    return HubspotResponse(response, access_token)
