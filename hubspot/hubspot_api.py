@@ -1,12 +1,14 @@
-from ast import match_case
+from datetime import datetime
 import os
 from time import sleep
 from typing import Literal
 import requests
+from utils.files import json_to_dict
 from utils.hubspot.hubspot_api_exection import (
     HubspotAPIError,
     HubspotAPILimitReached,
 )
+from utils.hubspot.hubspot_oauth import get_access_token
 
 # TODO comments
 
@@ -77,3 +79,20 @@ def hubspot_request(
         hubspot_request(url, verb, nb_retry + 1, **kwargs)
 
     return HubspotResponse(response, access_token)
+
+
+def get_local_access_token(portal_id):
+    if os.path.isfile(f"./tokens/tokens_{portal_id}.json"):
+        print("found local tokens")
+        date_now = datetime.now()
+        local_tokens = json_to_dict(f"./tokens/tokens_{portal_id}.json")
+        datetime_object = datetime.fromisoformat(local_tokens["expires_at"])
+        print(date_now)
+        print(datetime_object)
+        print(date_now > datetime_object)
+        print(local_tokens)
+        if date_now > datetime_object:
+            return get_access_token(portal_id)
+        return local_tokens["access_token"]
+    else:
+        return get_access_token(portal_id)
