@@ -1,7 +1,9 @@
+from ast import match_case
+import os
 from time import sleep
 from typing import Literal
 import requests
-from program.utils.hubspot.hubspot_api_exection import (
+from utils.hubspot.hubspot_api_exection import (
     HubspotAPIError,
     HubspotAPILimitReached,
 )
@@ -46,19 +48,29 @@ class HubspotResponse:
         return all_results
 
 
-def hubspot_request(url: str, verb: Literal["GET", "POST", "PUT"] = "GET", nb_retry=0) -> HubspotResponse:
-    access_token = "asdasdasd"
+def hubspot_request(
+    access_token: str, url: str, verb: Literal["GET", "POST", "PUT"] = "GET", nb_retry=0, **kwargs
+) -> HubspotResponse:
     header = {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Authorization": "Bearer " + access_token,
     }
+
     try:
-        response = requests.get(url, headers=header)
+        match verb:
+            case "GET":
+                response = requests.get(url, headers=header)
+            case "POST":
+                response = requests.post(url, headers=header, json=kwargs.get("data", {}))
+                pass
+            case "PUT":
+                response = requests.put(url, headers=header, json=kwargs.get("data", {}))
+                pass
     except HubspotAPILimitReached:
         if nb_retry > 10:
             raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 413)
         sleep(5)
-        hubspot_request(url, verb, nb_retry + 1)
+        hubspot_request(url, verb, nb_retry + 1, **kwargs)
 
     return HubspotResponse(response)

@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta
-from http import client
 from telnetlib import TLS
-from urllib import response
 import requests
 import os
 import pymongo
 
-from utils.files import write_to_json
+from utils.files import write_to_json, write_to_json_overwite
 
 
 def hubspot_login(code):
@@ -46,6 +44,7 @@ def oauth_login(code):
 def get_access_token(portal_id: int):
     # TODO get access token from mongodb
     tokens = get_tokens_by_portal_id_mongodb(portal_id)
+    print(tokens)
     refresh_token = tokens["refresh_token"]
     formData = (
         "grant_type=refresh_token&client_id="
@@ -63,8 +62,9 @@ def get_access_token(portal_id: int):
     new_tokens = response.json()
     date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
 
-    tokens_for_save = {"access_token": new_tokens["access_token"], "expires_at": date_time_plus_25_minutes}
-    write_to_json(tokens_for_save, f"/tokens/tokens_{portal_id}.json")
+    tokens_for_save = {"access_token": new_tokens["access_token"], "expires_at": date_time_plus_25_minutes.isoformat()}
+    write_to_json_overwite(tokens_for_save, f"./tokens/tokens_{portal_id}.json")
+    return new_tokens["access_token"]
 
     # token_{portal_id}.json
     # if file does not exists then access token is invalid
@@ -102,7 +102,8 @@ def get_tokens_by_portal_id_mongodb(portal_id: str):
     )
     db = client[os.getenv("MONGO_DB")]
     collection = db[os.getenv("MONGO_COLLECTION")]
-    return collection.find({"portalId": portal_id})
+    document = collection.find_one({"portal_id": portal_id})
+    return document
 
 
 def get_all_tokens_mongodb():
