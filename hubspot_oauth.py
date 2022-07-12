@@ -4,7 +4,7 @@ import requests
 import os
 import pymongo
 
-from utils.files import write_to_json, write_to_json_overwite
+from program.utils.files import write_to_json_overwite
 
 
 def hubspot_login(code):
@@ -44,7 +44,6 @@ def oauth_login(code):
 def get_access_token(portal_id: int):
     # TODO get access token from mongodb
     tokens = get_tokens_by_portal_id_mongodb(portal_id)
-    print(tokens)
     refresh_token = tokens["refresh_token"]
     formData = (
         "grant_type=refresh_token&client_id="
@@ -61,21 +60,15 @@ def get_access_token(portal_id: int):
     response = requests.post(url, data=formData, headers=headers)
     new_tokens = response.json()
     date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
-
-    tokens_for_save = {"access_token": new_tokens["access_token"], "expires_at": date_time_plus_25_minutes.isoformat()}
+    tokens_for_save = {
+        "access_token": new_tokens["access_token"],
+        "expires_at": date_time_plus_25_minutes.isoformat(),
+    }
     write_to_json_overwite(tokens_for_save, f"./tokens/tokens_{portal_id}.json")
     return new_tokens["access_token"]
 
-    # token_{portal_id}.json
-    # if file does not exists then access token is invalid
-    # {"access_token": "asdasdasdsda", "expires_at": "123123123"}
-    # check if expires_at is less than 5min in the future
-    # if not use access token
-    # if less than 5min refresh the access token and save it on disk with the new expires_at
-
 
 def check_access_token(access_token):
-
     url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
     response = requests.get(url)
     if response.status_code == 200:

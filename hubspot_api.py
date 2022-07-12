@@ -3,12 +3,12 @@ import os
 from time import sleep
 from typing import Literal
 import requests
-from utils.files import json_to_dict
-from utils.hubspot.hubspot_api_exection import (
+from program.utils.files import json_to_dict
+from program.utils.hubspot_api_exection import (
     HubspotAPIError,
     HubspotAPILimitReached,
 )
-from utils.hubspot.hubspot_oauth import get_access_token
+from program.utils.hubspot_oauth import get_access_token
 
 # TODO comments
 
@@ -18,10 +18,11 @@ class HubspotResponse:
 
     def __init__(self, response: requests.Response, access_token: str) -> None:
         self.access_token = access_token
+        # raise HubspotAPILimitReached(response.text, response.status_code)
         if response.status_code >= 200 and response.status_code <= 299:
             self.data = response.json()
         else:
-            if response.status_code == 413:
+            if response.status_code == 429:
                 raise HubspotAPILimitReached(response.text, response.status_code)
             raise HubspotAPIError(response.text, response.status_code)
 
@@ -54,31 +55,42 @@ class HubspotResponse:
 
 
 def hubspot_request(
-    access_token: str, url: str, verb: Literal["GET", "POST", "PUT"] = "GET", nb_retry=0, **kwargs
+    access_token: str,
+    url: str,
+    verb: Literal["GET", "POST", "PUT", "PATCH"] = "GET",
+    nb_retry=0,
+    **kwargs,
 ) -> HubspotResponse:
     header = {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Authorization": "Bearer " + access_token,
     }
-
     try:
         match verb:
             case "GET":
                 response = requests.get(url, headers=header)
+                response = HubspotResponse(response, access_token)
+                return response
             case "POST":
                 response = requests.post(url, headers=header, json=kwargs.get("data", {}))
-                pass
+                response = HubspotResponse(response, access_token)
+                return response
             case "PUT":
                 response = requests.put(url, headers=header, json=kwargs.get("data", {}))
-                pass
+                response = HubspotResponse(response, access_token)
+                return response
+            case "PATCH":
+                response = requests.patch(url, headers=header, json=kwargs.get("data", {}))
+                response = HubspotResponse(response, access_token)
+                return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
-            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 413)
+            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+        print("sleeping for 5 seconds")
         sleep(5)
-        hubspot_request(url, verb, nb_retry + 1, **kwargs)
-
-    return HubspotResponse(response, access_token)
+        print("retrying")
+        return hubspot_request(access_token, url, verb, nb_retry + 1, **kwargs)
 
 
 def get_local_access_token(portal_id):
@@ -87,10 +99,6 @@ def get_local_access_token(portal_id):
         date_now = datetime.now()
         local_tokens = json_to_dict(f"./tokens/tokens_{portal_id}.json")
         datetime_object = datetime.fromisoformat(local_tokens["expires_at"])
-        print(date_now)
-        print(datetime_object)
-        print(date_now > datetime_object)
-        print(local_tokens)
         if date_now > datetime_object:
             return get_access_token(portal_id)
         return local_tokens["access_token"]
