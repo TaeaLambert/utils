@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import os
 import pymongo
 
-from program.utils.files import write_to_json_overwite
-import program.utils.hubspot_api as hubspot_api
+from utilsLocal.files import write_to_json_overwite
+import utilsLocal.hubspot_api as hubspot_api
 
 
 def hubspot_login(code):
@@ -62,7 +62,7 @@ def get_access_token(portal_id: int):
         + refresh_token
     )
     url = "https://api.hubapi.com/oauth/v1/token"
-    new_tokens = hubspot_api.token_api_request(url, data=formData).data
+    new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
     date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
     tokens_for_save = {
         "access_token": new_tokens["access_token"],
