@@ -1,28 +1,28 @@
 from datetime import datetime, timedelta
-from telnetlib import TLS
-import requests
 import os
 import pymongo
 
 from program.utils.files import write_to_json_overwite
+import program.utils.hubspot_api as hubspot_api
 
 
 def hubspot_login(code):
     print("login")
     tokens = oauth_login(code)
-    if not tokens:
-        return 400
-    print("saving tokens.....")
-    hub = check_access_token(tokens["access_token"])
-    tokens["portal_id"] = str(hub["hub_id"])
-    save_token_mongodb(tokens)
-    print("saved tokens.....")
-    return str(hub["hub_id"])
+    if tokens:
+        print("saving tokens.....")
+        hub = check_access_token(tokens["access_token"])
+        tokens["portal_id"] = str(hub["hub_id"])
+        save_token_mongodb(tokens)
+        print("saved tokens.....")
+        return str(hub["hub_id"])
+    return 400
 
 
 def oauth_login(code):
     print(os.getenv("REDIRECT_URI"))
-    formdata = (
+    url = "https://api.hubapi.com/oauth/v1/token"
+    formData = (
         f"grant_type=authorization_code&code={code}"
         + "&redirect_uri="
         + os.getenv("REDIRECT_URI")
@@ -31,14 +31,20 @@ def oauth_login(code):
         + "&client_secret="
         + os.getenv("CLIENT_SECRET")
     )
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    url = "https://api.hubapi.com/oauth/v1/token?"
-    response = requests.post(url, data=formdata, headers=headers)
-    print(response.json())
-    if response.status_code == 200:
-        return response.json()
+    response = hubspot_api.token_api_request(url, "POST", data=formData)
+    if response.status_code != 400:
+        return response.data
     else:
         return None
+
+
+def check_access_token(access_token):
+    url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
+    response = hubspot_api.token_api_request(url, "GET")
+    if response.status_code == 200:
+        return response.data
+    else:
+        return False
 
 
 def get_access_token(portal_id: int):
@@ -56,9 +62,7 @@ def get_access_token(portal_id: int):
         + refresh_token
     )
     url = "https://api.hubapi.com/oauth/v1/token"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    response = requests.post(url, data=formData, headers=headers)
-    new_tokens = response.json()
+    new_tokens = hubspot_api.token_api_request(url, data=formData).data
     date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
     tokens_for_save = {
         "access_token": new_tokens["access_token"],
@@ -68,15 +72,6 @@ def get_access_token(portal_id: int):
     return new_tokens["access_token"]
 
 
-def check_access_token(access_token):
-    url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return False
-
-
 def save_token_mongodb(tokens):
     client = pymongo.MongoClient(
         str(os.getenv("DATABASE_URL")) + "&" + str(os.getenv("CA_CERT")),
@@ -84,7 +79,7 @@ def save_token_mongodb(tokens):
     )
     db = client[os.getenv("MONGO_DB")]
     collection = db[os.getenv("MONGO_COLLECTION")]
-    collection.insert_one(tokens)
+    collection.replace_one({"portal_id": tokens["portal_id"]}, tokens, upsert=True)
     return "done"
 
 

@@ -9,19 +9,25 @@ from program.utils.hubspot_api_exection import (
     HubspotAPILimitReached,
 )
 from program.utils.hubspot_oauth import get_access_token
+import sentry_sdk
 
 # TODO comments
 
 
 class HubspotResponse:
     data: dict
+    status_code: int
 
     def __init__(self, response: requests.Response, access_token: str) -> None:
         self.access_token = access_token
+        self.status_code = response.status_code
         # raise HubspotAPILimitReached(response.text, response.status_code)
         if response.status_code >= 200 and response.status_code <= 299:
             self.data = response.json()
         else:
+            print(
+                f"inside hubspot_api line:29 :{response.text}, {response.status_code}"
+            )
             if response.status_code == 429:
                 raise HubspotAPILimitReached(response.text, response.status_code)
             raise HubspotAPIError(response.text, response.status_code)
@@ -73,20 +79,28 @@ def hubspot_request(
                 response = HubspotResponse(response, access_token)
                 return response
             case "POST":
-                response = requests.post(url, headers=header, json=kwargs.get("data", {}))
+                response = requests.post(
+                    url, headers=header, json=kwargs.get("data", {})
+                )
                 response = HubspotResponse(response, access_token)
                 return response
             case "PUT":
-                response = requests.put(url, headers=header, json=kwargs.get("data", {}))
+                response = requests.put(
+                    url, headers=header, json=kwargs.get("data", {})
+                )
                 response = HubspotResponse(response, access_token)
                 return response
             case "PATCH":
-                response = requests.patch(url, headers=header, json=kwargs.get("data", {}))
+                response = requests.patch(
+                    url, headers=header, json=kwargs.get("data", {})
+                )
                 response = HubspotResponse(response, access_token)
                 return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
-            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+            raise HubspotAPILimitReached(
+                f"After {nb_retry} we are still getting errors", 429
+            )
         print("sleeping for 5 seconds")
         sleep(5)
         print("retrying")
@@ -104,3 +118,41 @@ def get_local_access_token(portal_id):
         return local_tokens["access_token"]
     else:
         return get_access_token(portal_id)
+
+
+def token_api_request(
+    url: str,
+    verb: Literal["GET", "POST"] = "GET",
+    nb_retry=0,
+    **kwargs,
+) -> HubspotResponse:
+    header = {"Content-Type": "application/x-www-form-urlencoded"}
+
+    print(f"url: {url}")
+    print(f"verb: {verb}")
+    print(kwargs.get("data", {}))
+
+    try:
+        match verb:
+            case "POST":
+                response = requests.post(
+                    url, headers=header, data=kwargs.get("data", {})
+                )
+                response = HubspotResponse(response, "ss")
+                return response
+            case "GET":
+                response = requests.get(url, headers=header)
+                response = HubspotResponse(response, "ss")
+                return response
+    except HubspotAPILimitReached:
+        if nb_retry > 10:
+            raise HubspotAPILimitReached(
+                f"After {nb_retry} we are still getting errors", 429
+            )
+        print("sleeping for 5 seconds")
+        sleep(5)
+        print("retrying")
+        return token_api_request(url, verb, nb_retry + 1, **kwargs)
+    except HubspotAPIError as e:
+        sentry_sdk.capture_exception(e)
+        return response
