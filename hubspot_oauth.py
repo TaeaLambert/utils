@@ -1,9 +1,16 @@
-from datetime import datetime, timedelta
+import json
 import os
+from datetime import datetime, timedelta
+from pathlib import Path
 import pymongo
+import program.utils.hubspot_api as hubspot_api
 
-from utilsLocal.files import write_to_json_overwite
-import utilsLocal.hubspot_api as hubspot_api
+
+def write_to_json_overwite(data, path: Path):
+    # write data to a json file
+    with open(path, "w", encoding="utf8") as outfile:
+        json.dump(data, outfile)
+    return "done"
 
 
 def hubspot_login(code):

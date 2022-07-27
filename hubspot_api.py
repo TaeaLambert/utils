@@ -1,15 +1,17 @@
-from datetime import datetime
+import json
 import os
+import logging
 from time import sleep
+import pathlib as Path
 from typing import Literal
 import requests
-from program.utils.files import json_to_dict
+import sentry_sdk
+from datetime import datetime
 from program.utils.hubspot_api_exection import (
     HubspotAPIError,
     HubspotAPILimitReached,
 )
 from program.utils.hubspot_oauth import get_access_token
-import sentry_sdk
 
 # TODO comments
 
@@ -25,9 +27,8 @@ class HubspotResponse:
         if response.status_code >= 200 and response.status_code <= 299:
             self.data = response.json()
         else:
-            print(
-                f"inside hubspot_api line:29 :{response.text}, {response.status_code}"
-            )
+            logging.debug(f"{response.text}, {response.status_code}")
+
             if response.status_code == 429:
                 raise HubspotAPILimitReached(response.text, response.status_code)
             raise HubspotAPIError(response.text, response.status_code)
@@ -79,37 +80,29 @@ def hubspot_request(
                 response = HubspotResponse(response, access_token)
                 return response
             case "POST":
-                response = requests.post(
-                    url, headers=header, json=kwargs.get("data", {})
-                )
+                response = requests.post(url, headers=header, json=kwargs.get("data", {}))
                 response = HubspotResponse(response, access_token)
                 return response
             case "PUT":
-                response = requests.put(
-                    url, headers=header, json=kwargs.get("data", {})
-                )
+                response = requests.put(url, headers=header, json=kwargs.get("data", {}))
                 response = HubspotResponse(response, access_token)
                 return response
             case "PATCH":
-                response = requests.patch(
-                    url, headers=header, json=kwargs.get("data", {})
-                )
+                response = requests.patch(url, headers=header, json=kwargs.get("data", {}))
                 response = HubspotResponse(response, access_token)
                 return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
-            raise HubspotAPILimitReached(
-                f"After {nb_retry} we are still getting errors", 429
-            )
-        print("sleeping for 5 seconds")
+            logging.error(f"After {nb_retry} we are still getting errors")
+            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+        logging.info("sleeping for 5 seconds")
         sleep(5)
-        print("retrying")
+        logging.info("retrying")
         return hubspot_request(access_token, url, verb, nb_retry + 1, **kwargs)
 
 
-def get_local_access_token(portal_id):
+def get_local_access_token(portal_id: str) -> str:
     if os.path.isfile(f"./tokens/tokens_{portal_id}.json"):
-        print("found local tokens")
         date_now = datetime.now()
         local_tokens = json_to_dict(f"./tokens/tokens_{portal_id}.json")
         datetime_object = datetime.fromisoformat(local_tokens["expires_at"])
@@ -127,17 +120,10 @@ def token_api_request(
     **kwargs,
 ) -> HubspotResponse:
     header = {"Content-Type": "application/x-www-form-urlencoded"}
-
-    print(f"url: {url}")
-    print(f"verb: {verb}")
-    print(kwargs.get("data", {}))
-
     try:
         match verb:
             case "POST":
-                response = requests.post(
-                    url, headers=header, data=kwargs.get("data", {})
-                )
+                response = requests.post(url, headers=header, data=kwargs.get("data", {}))
                 response = HubspotResponse(response, "ss")
                 return response
             case "GET":
@@ -146,13 +132,17 @@ def token_api_request(
                 return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
-            raise HubspotAPILimitReached(
-                f"After {nb_retry} we are still getting errors", 429
-            )
-        print("sleeping for 5 seconds")
+            logging.error(f"After {nb_retry} we are still getting errors")
+            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+        logging.info("sleeping for 5 seconds")
         sleep(5)
-        print("retrying")
+        logging.info("retrying")
         return token_api_request(url, verb, nb_retry + 1, **kwargs)
     except HubspotAPIError as e:
         sentry_sdk.capture_exception(e)
         return response
+
+
+def json_to_dict(path: Path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
