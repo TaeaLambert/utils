@@ -13,6 +13,20 @@ def write_to_json_overwite(data, path: Path):
     return "done"
 
 
+### if you want to create properties while installing this app uncomment this and comment the funtion below
+
+# def hubspot_login(code):
+#     print("login")
+#     tokens = oauth_login(code)
+#     if tokens:
+#         print("saving tokens.....")
+#         hub = check_access_token(tokens["access_token"])
+#         tokens["portal_id"] = str(hub["hub_id"])
+#         save_token_mongodb(tokens)
+#         print("saved tokens.....")
+#         return [tokens["access_token"], str(hub["hub_id"])]
+#     return 400
+
 def hubspot_login(code):
     print("login")
     tokens = oauth_login(code)
