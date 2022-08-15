@@ -15,20 +15,21 @@ def write_to_json_overwite(data, path: Path):
 
 ### if you want to create properties while installing this app uncomment this and comment the funtion below
 
-# def hubspot_login(code):
-#     print("login")
-#     tokens = oauth_login(code)
-#     if tokens:
-#         print("saving tokens.....")
-#         hub = check_access_token(tokens["access_token"])
-#         tokens["portal_id"] = str(hub["hub_id"])
-#         save_token_mongodb(tokens)
-#         print("saved tokens.....")
-#         return [tokens["access_token"], str(hub["hub_id"])]
-#     return 400
+
+def hubspot_login_create_properties(code: str) -> list[str, str]:
+    print("login")
+    tokens = oauth_login(code)
+    if tokens:
+        print("saving tokens.....")
+        hub = check_access_token(tokens["access_token"])
+        tokens["portal_id"] = str(hub["hub_id"])
+        save_token_mongodb(tokens)
+        print("saved tokens.....")
+        return [tokens["access_token"], str(hub["hub_id"])]
+    return 400
 
 
-def hubspot_login(code):
+def hubspot_login(code: str) -> list[str]:
     print("login")
     tokens = oauth_login(code)
     if tokens:
@@ -41,7 +42,7 @@ def hubspot_login(code):
     return 400
 
 
-def oauth_login(code):
+def oauth_login(code: str) -> dict or None:
     print(os.getenv("REDIRECT_URI"))
     url = "https://api.hubapi.com/oauth/v1/token"
     formData = (
@@ -60,7 +61,7 @@ def oauth_login(code):
         return None
 
 
-def check_access_token(access_token):
+def check_access_token(access_token: str) -> dict or False:
     url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
     response = hubspot_api.token_api_request(url, "GET")
     if response.status_code == 200:
@@ -69,7 +70,7 @@ def check_access_token(access_token):
         return False
 
 
-def get_access_token(portal_id: int):
+def get_access_token(portal_id: int) -> str or False:
     # TODO get access token from mongodb
     tokens = get_tokens_by_portal_id_mongodb(portal_id)
     refresh_token = tokens["refresh_token"]
@@ -84,13 +85,17 @@ def get_access_token(portal_id: int):
         + refresh_token
     )
     url = "https://api.hubapi.com/oauth/v1/token"
-    new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
-    date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
-    tokens_for_save = {
-        "access_token": new_tokens["access_token"],
-        "expires_at": date_time_plus_25_minutes.isoformat(),
-    }
-    write_to_json_overwite(tokens_for_save, f"./tokens/tokens_{portal_id}.json")
+    try:
+        new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
+        date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
+        tokens_for_save = {
+            "access_token": new_tokens["access_token"],
+            "expires_at": date_time_plus_25_minutes.isoformat(),
+        }
+        write_to_json_overwite(tokens_for_save, f"./tokens/tokens_{portal_id}.json")
+    except Exception as e:
+        print(e)
+        return False
     return new_tokens["access_token"]
 
 
