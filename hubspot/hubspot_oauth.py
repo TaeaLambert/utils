@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 import pymongo
-import workspace.program.utils.hubspot_api as hubspot_api
+from program.utils.hubspot.hubspot_api import token_api_request
 
 
 def write_to_json_overwite(data, path: Path):
@@ -15,17 +15,17 @@ def write_to_json_overwite(data, path: Path):
 
 ### if you want to create properties while installing this app uncomment this and comment the funtion below
 
-# def hubspot_login(code):
-#     print("login")
-#     tokens = oauth_login(code)
-#     if tokens:
-#         print("saving tokens.....")
-#         hub = check_access_token(tokens["access_token"])
-#         tokens["portal_id"] = str(hub["hub_id"])
-#         save_token_mongodb(tokens)
-#         print("saved tokens.....")
-#         return [tokens["access_token"], str(hub["hub_id"])]
-#     return 400
+def hubspot_login_create_property(code):
+    print("login")
+    tokens = oauth_login(code)
+    if tokens:
+        print("saving tokens.....")
+        hub = check_access_token(tokens["access_token"])
+        tokens["portal_id"] = str(hub["hub_id"])
+        save_token_mongodb(tokens)
+        print("saved tokens.....")
+        return [tokens["access_token"], str(hub["hub_id"])]
+    return 400
 
 def hubspot_login(code):
     print("login")
@@ -52,7 +52,7 @@ def oauth_login(code):
         + "&client_secret="
         + os.getenv("CLIENT_SECRET")
     )
-    response = hubspot_api.token_api_request(url, "POST", data=formData)
+    response = token_api_request(url, "POST", data=formData)
     if response.status_code != 400:
         return response.data
     else:
@@ -61,7 +61,7 @@ def oauth_login(code):
 
 def check_access_token(access_token):
     url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
-    response = hubspot_api.token_api_request(url, "GET")
+    response = token_api_request(url, "GET")
     if response.status_code == 200:
         return response.data
     else:
@@ -83,7 +83,7 @@ def get_access_token(portal_id: int):
         + refresh_token
     )
     url = "https://api.hubapi.com/oauth/v1/token"
-    new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
+    new_tokens = token_api_request(url, "POST", data=formData).data
     date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
     tokens_for_save = {
         "access_token": new_tokens["access_token"],

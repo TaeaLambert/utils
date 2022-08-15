@@ -7,11 +7,11 @@ from typing import Literal
 import requests
 import sentry_sdk
 from datetime import datetime
-from workspace.program.utils.hubspot.hubspot_api_exection import (
+from program.utils.hubspot.hubspot_api_exection import (
     HubspotAPIError,
     HubspotAPILimitReached,
 )
-from workspace.program.utils.hubspot.hubspot_oauth import get_access_token
+from program.utils.hubspot.hubspot_oauth import get_access_token
 
 # TODO comments
 
