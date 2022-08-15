@@ -8,6 +8,12 @@ class CalculationError(Exception):
 
 class string_calculate:
     def __init__(self, text: str):
+        self.text = text
+        text = text.replace(" ", "")
+        operators = ["+", "-", "*", "/", "(", ")"]
+        for operator in operators:
+            text = text.replace(operator, " " + operator + " ")
+
         text_list = text.split(" ")
         for item in text_list:
             if item == "+" or item == "-" or item == "*" or item == "/" or item == "" or item == "(" or item == ")":
