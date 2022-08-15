@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 import pymongo
-import program.utils.hubspot_api as hubspot_api
+import workspace.program.utils.hubspot_api as hubspot_api
 
 
 def write_to_json_overwite(data, path: Path):
