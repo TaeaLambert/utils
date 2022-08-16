@@ -9,6 +9,7 @@ class CalculationError(Exception):
 class string_calculate:
     def __init__(self, text: str):
         self.text = text
+        self.text = self.text.replace("\n", " ")
         self.text = self.text.replace(" ", "")
         operators = ["+", "-", "*", "/", "(", ")"]
         for operator in operators:
