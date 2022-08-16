@@ -9,13 +9,13 @@ class CalculationError(Exception):
 class string_calculate:
     def __init__(self, text: str):
         self.text = text
-        text = text.replace(" ", "")
+        self.text = self.text.replace(" ", "")
         operators = ["+", "-", "*", "/", "(", ")"]
         for operator in operators:
-            text = text.replace(operator, " " + operator + " ")
+            self.text = self.text.replace(operator, " " + operator + " ")
 
-        text_list = text.split(" ")
-        for item in text_list:
+        self.text_list = self.text.split(" ")
+        for item in self.text_list:
             if item == "+" or item == "-" or item == "*" or item == "/" or item == "" or item == "(" or item == ")":
                 pass
             else:
@@ -24,9 +24,9 @@ class string_calculate:
                     pass
                 except ValueError:
                     raise CalculationError(
-                        f"Error convering to equation {item} is not a number or one of the following opperators +, -, *, /, (, )"
+                        f"Error convering to equation '{item}' is not a number or one of the following opperators +, -, *, /, (, ) or a number.\n\n The equation was:\t '{self.text}'"
                     )
                 except Exception as e:
                     raise CalculationError(e)
-        text = text.replace(" ", "")
-        self.value = eval(text)
+        self.text = self.text.replace(" ", "")
+        self.value = eval(self.text)
