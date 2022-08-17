@@ -11,5 +11,9 @@ def format_url(url: str) -> str:
         str: Returns a formatted url. (replace " " with "-" --> .lower() --> utf-8 encoded)
     """
     formatted_url = url.replace(" ", "-").lower()
+    try:
+        formatted_url_done = urlquote(formatted_url)
+    except Exception as e:
+        return e
     # encode formatted_url to utf-8
-    return urlquote(formatted_url)
+    return formatted_url_done
