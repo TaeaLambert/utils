@@ -31,7 +31,7 @@ class HubspotResponse:
 
             if response.status_code == 429:
                 raise HubspotAPILimitReached(response.text, response.status_code)
-            raise HubspotAPIError(response.text, response.status_code)
+            raise HubspotAPIError(response.text if response.text != "" else response.reason, response.status_code)
 
     @property
     def results(self) -> dict:
