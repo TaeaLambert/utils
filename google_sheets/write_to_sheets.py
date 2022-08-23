@@ -20,6 +20,7 @@ def write_tasks(data):
     sh = gc.open(os.getenv("WRIKE_FILE")).worksheet("wrikeTaskoutput")
     sh.clear()
     sh.update("A1", data)
+    sh.sort((3, "asc"), range="A2:Q50000")
     return "done"
 
 
@@ -28,6 +29,7 @@ def write_tasks_formatted(data):
     sh = gc.open(os.getenv("WRIKE_FILE")).worksheet("wrikeTaskoutputFormatted")
     sh.clear()
     sh.update("A1", data)
+    sh.sort((2, "asc"), range="A2:Q50000")
     return "done"
 
 
