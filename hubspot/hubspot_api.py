@@ -1,23 +1,17 @@
-import json
 import os
 import logging
 from time import sleep
-import pathlib as Path
 from typing import Literal
-import requests
-import sentry_sdk
 from datetime import datetime
-from program.utils.hubspot.hubspot_api_exection import (
-    HubspotAPIError,
-    HubspotAPILimitReached,
-)
-from program.utils.hubspot.hubspot_oauth import get_access_token
 
-# TODO comments
+import requests
+
+from program.utils.hubspot.hubspot_oauth import get_access_token
+from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
+from program.utils.hubspot.files import json_to_dict
 
 
 class HubspotResponse:
-    #  TODO finnish this comments
     """_summary_
 
     Veriables:
@@ -179,20 +173,19 @@ def hubspot_request(
     nb_retry=0,
     **kwargs,
 ) -> HubspotResponse:
-    #  TODO finnish this comments
     """_summary_
 
     Args:
-        access_token (str): _description_
-        url (str): _description_
-        verb (Literal[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;], optional): _description_. Defaults to "GET".
-        nb_retry (int, optional): _description_. Defaults to 0.
+        access_token (str): This is the bearer token used by requests to authorize the request
+        url (str): Url where the request is pointed to
+        verb (Literal[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;], optional): This is used for the type of request the funtion will use. Defaults to "GET".
+        nb_retry (int, optional): This is the base number the retrys will start at 10 retrys max Defaults to 0.
 
-    Raises:
-        HubspotAPILimitReached: _description_
+       Raises:
+           HubspotAPIError: A error if no paging is found in the resoponse
 
-    Returns:
-        HubspotResponse: _description_
+       Returns:
+           HubspotResponse: A hubspot request that contains the text set of data if "paging is found in the response"
     """
     header = {
         "Content-Type": "application/json",
@@ -228,14 +221,16 @@ def hubspot_request(
 
 
 def get_local_access_token(portal_id: str) -> str:
-    #  TODO finnish this comments
     """_summary_
+    This funtion uses a hubspot portal id to find a access token locally if
+    a token is not found locally then it will look within the database &
+    collection selected in the .env file
 
     Args:
-        portal_id (str): _description_
+        portal_id (str): Portal id of the access token the program is trying to find
 
     Returns:
-        str: _description_
+        str: a Oauth access token.
     """
     if os.path.isfile(f"./tokens/tokens_{portal_id}.json"):
         date_now = datetime.now()
@@ -246,61 +241,3 @@ def get_local_access_token(portal_id: str) -> str:
         return local_tokens["access_token"]
     else:
         return get_access_token(portal_id)
-
-
-def token_api_request(
-    url: str,
-    verb: Literal["GET", "POST"] = "GET",
-    nb_retry=0,
-    **kwargs,
-) -> HubspotResponse:
-    #  TODO finnish this comments
-    """_summary_
-
-    Args:
-        url (str): _description_
-        verb (Literal[&quot;GET&quot;, &quot;POST&quot;], optional): _description_. Defaults to "GET".
-        nb_retry (int, optional): _description_. Defaults to 0.
-
-    Raises:
-        HubspotAPILimitReached: _description_
-
-    Returns:
-        HubspotResponse: _description_
-    """
-    header = {"Content-Type": "application/x-www-form-urlencoded"}
-    try:
-        match verb:
-            case "POST":
-                response = requests.post(url, headers=header, data=kwargs.get("data", {}))
-                response = HubspotResponse(response, "ss")
-                return response
-            case "GET":
-                response = requests.get(url, headers=header)
-                response = HubspotResponse(response, "ss")
-                return response
-    except HubspotAPILimitReached:
-        if nb_retry > 10:
-            logging.error(f"After {nb_retry} we are still getting errors")
-            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
-        logging.info("sleeping for 5 seconds")
-        sleep(5)
-        logging.info("retrying")
-        return token_api_request(url, verb, nb_retry + 1, **kwargs)
-    except HubspotAPIError as e:
-        sentry_sdk.capture_exception(e)
-        return response
-
-
-def json_to_dict(path: Path):
-    #  TODO finnish this comments
-    """_summary_
-
-    Args:
-        path (Path): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)

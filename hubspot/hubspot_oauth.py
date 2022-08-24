@@ -1,35 +1,28 @@
-import json
 import os
+import logging
+from time import sleep
+from typing import Literal
 from datetime import datetime, timedelta
-from pathlib import Path
-import pymongo
-import program.utils.hubspot.hubspot_api as hubspot_api
 
+import requests
+import sentry_sdk
 
-def write_to_json_overwite(data, path: Path):
-    # write data to a json file
-    with open(path, "w", encoding="utf8") as outfile:
-        json.dump(data, outfile)
-    return "done"
+from program.utils.hubspot.hubspot_api import HubspotResponse
+from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
+from program.utils.hubspot.mongodb import get_tokens_by_portal_id_mongodb, save_token_mongodb
+from program.utils.hubspot.files import write_to_json_overwite
 
-
-### if you want to create properties while installing this app uncomment this and comment the funtion below
-
-
-def hubspot_login_create_properties(code: str) -> list[str, str]:
-    print("login")
-    tokens = oauth_login(code)
-    if tokens:
-        print("saving tokens.....")
-        hub = check_access_token(tokens["access_token"])
-        tokens["portal_id"] = str(hub["hub_id"])
-        save_token_mongodb(tokens)
-        print("saved tokens.....")
-        return [tokens["access_token"], str(hub["hub_id"])]
-    return 400
-
-
+# 1st to run
 def hubspot_login(code: str) -> list[str]:
+    """_summary_
+    This funtion is used to call other funtions to install the application into a hubspot portal
+
+    Args:
+        code (str): This is a code provided by hubspot in the url
+
+    Returns:
+        list[str]: A portal id so the program can redirect correctly
+    """
     print("login")
     tokens = oauth_login(code)
     if tokens:
@@ -42,7 +35,17 @@ def hubspot_login(code: str) -> list[str]:
     return 400
 
 
+# 2nd to run V1
 def oauth_login(code: str) -> dict or None:
+    """_summary_
+    This funtion is used when the hubspot application is installed into a portal
+
+    Args:
+        code (str): This is a code provided by hubspot in the url
+
+    Returns:
+        dict or None: _description_
+    """
     print(os.getenv("REDIRECT_URI"))
     url = "https://api.hubapi.com/oauth/v1/token"
     formData = (
@@ -54,16 +57,50 @@ def oauth_login(code: str) -> dict or None:
         + "&client_secret="
         + os.getenv("CLIENT_SECRET")
     )
-    response = hubspot_api.token_api_request(url, "POST", data=formData)
+    response = token_api_request(url, "POST", data=formData)
     if response.status_code != 400:
         return response.data
     else:
         return None
 
 
+# 2nd to run V2
+def hubspot_login_create_properties(code: str) -> list[str, str]:
+    """_summary_
+    This funtion is used when the hubspot application is installed into a portal
+    and the program must create a one or more properties before the login process is completed.
+
+    Args:
+        code (str):  This is a code provided by hubspot in the url
+
+    Returns:
+        list[str, str]: the access token that will be used to create the properties and a portal id so the program can redirect correctly.
+    """
+    print("login")
+    tokens = oauth_login(code)
+    if tokens:
+        print("saving tokens.....")
+        hub = check_access_token(tokens["access_token"])
+        tokens["portal_id"] = str(hub["hub_id"])
+        save_token_mongodb(tokens)
+        print("saved tokens.....")
+        return [tokens["access_token"], str(hub["hub_id"])]
+    return 400
+
+
+# 3rd to run
 def check_access_token(access_token: str) -> dict or False:
+    """_summary_
+    This funtion is used to get the hubspot portal id where the application was installed into
+
+    Args:
+        access_token (str): The bearer token that will be sent to hubspot rest api
+
+    Returns:
+        dict or False: dict of all the data returned by the request. If the the request returns a error False will be returned
+    """
     url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
-    response = hubspot_api.token_api_request(url, "GET")
+    response = token_api_request(url, "GET")
     if response.status_code == 200:
         return response.data
     else:
@@ -71,7 +108,17 @@ def check_access_token(access_token: str) -> dict or False:
 
 
 def get_access_token(portal_id: int) -> str or False:
-    # TODO get access token from mongodb
+    """_summary_
+    This funtion gets a new refreshed access token from hubspot for the application depending on the portal id
+    first the tokens saved within the selected DB (.env file). The program selects the refesh token which
+    is used to get a new access token from hubspot.
+
+    Args:
+        portal_id (int): The protal id that will be used to gather the refresh token.
+
+    Returns:
+        str or False: If the request is successfully completed the a access token will be returned else False will be returned.
+    """
     tokens = get_tokens_by_portal_id_mongodb(portal_id)
     refresh_token = tokens["refresh_token"]
     formData = (
@@ -86,7 +133,7 @@ def get_access_token(portal_id: int) -> str or False:
     )
     url = "https://api.hubapi.com/oauth/v1/token"
     try:
-        new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
+        new_tokens = token_api_request(url, "POST", data=formData).data
         date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
         tokens_for_save = {
             "access_token": new_tokens["access_token"],
@@ -99,33 +146,44 @@ def get_access_token(portal_id: int) -> str or False:
     return new_tokens["access_token"]
 
 
-def save_token_mongodb(tokens):
-    client = pymongo.MongoClient(
-        str(os.getenv("DATABASE_URL")) + "&" + str(os.getenv("CA_CERT")),
-        authSource="admin",
-    )
-    db = client[os.getenv("MONGO_DB")]
-    collection = db[os.getenv("MONGO_COLLECTION")]
-    collection.replace_one({"portal_id": tokens["portal_id"]}, tokens, upsert=True)
-    return "done"
+def token_api_request(
+    url: str,
+    verb: Literal["GET", "POST"] = "GET",
+    nb_retry=0,
+    **kwargs,
+) -> HubspotResponse:
+    """_summary_
 
+    Args:
+        url (str): Url where the request is pointed to.
+        verb (Literal[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;], optional): This is used for the type of request the funtion will use. Defaults to "GET".
+        nb_retry (int, optional): This is the base number the retrys will start at 10 retrys max Defaults to 0.
 
-def get_tokens_by_portal_id_mongodb(portal_id: str):
-    client = pymongo.MongoClient(
-        str(os.getenv("DATABASE_URL")) + "&" + str(os.getenv("CA_CERT")),
-        authSource="admin",
-    )
-    db = client[os.getenv("MONGO_DB")]
-    collection = db[os.getenv("MONGO_COLLECTION")]
-    document = collection.find_one({"portal_id": portal_id})
-    return document
+    Raises:
+        HubspotAPIError: A error if no paging is found in the resoponse
 
-
-def get_all_tokens_mongodb():
-    client = pymongo.MongoClient(
-        str(os.getenv("DATABASE_URL")) + "&" + str(os.getenv("CA_CERT")),
-        authSource="admin",
-    )
-    db = client[os.getenv("MONGO_DB")]
-    collection = db[os.getenv("MONGO_COLLECTION")]
-    return collection.find()
+    Returns:
+        HubspotResponse: A hubspot request that contains the text set of data if "paging is found in the response"
+    """
+    header = {"Content-Type": "application/x-www-form-urlencoded"}
+    try:
+        match verb:
+            case "POST":
+                response = requests.post(url, headers=header, data=kwargs.get("data", {}))
+                response = HubspotResponse(response, "ss")
+                return response
+            case "GET":
+                response = requests.get(url, headers=header)
+                response = HubspotResponse(response, "ss")
+                return response
+    except HubspotAPILimitReached:
+        if nb_retry > 10:
+            logging.error(f"After {nb_retry} we are still getting errors")
+            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+        logging.info("sleeping for 5 seconds")
+        sleep(5)
+        logging.info("retrying")
+        return token_api_request(url, verb, nb_retry + 1, **kwargs)
+    except HubspotAPIError as e:
+        sentry_sdk.capture_exception(e)
+        return response
