@@ -1,14 +1,7 @@
 import os
-import logging
-from time import sleep
-from typing import Literal
 from datetime import datetime, timedelta
 
-import requests
-import sentry_sdk
-
-from program.utils.hubspot.hubspot_api import HubspotResponse
-from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
+import program.utils.hubspot.hubspot_api as hubspot_api
 from program.utils.hubspot.mongodb import get_tokens_by_portal_id_mongodb, save_token_mongodb
 from program.utils.hubspot.files import write_to_json_overwite
 
@@ -57,7 +50,7 @@ def oauth_login(code: str) -> dict or None:
         + "&client_secret="
         + os.getenv("CLIENT_SECRET")
     )
-    response = token_api_request(url, "POST", data=formData)
+    response = hubspot_api.token_api_request(url, "POST", data=formData)
     if response.status_code != 400:
         return response.data
     else:
@@ -100,7 +93,7 @@ def check_access_token(access_token: str) -> dict or False:
         dict or False: dict of all the data returned by the request. If the the request returns a error False will be returned
     """
     url = "https://api.hubapi.com/oauth/v1/access-tokens/" + access_token
-    response = token_api_request(url, "GET")
+    response = hubspot_api.token_api_request(url, "GET")
     if response.status_code == 200:
         return response.data
     else:
@@ -133,7 +126,7 @@ def get_access_token(portal_id: int) -> str or False:
     )
     url = "https://api.hubapi.com/oauth/v1/token"
     try:
-        new_tokens = token_api_request(url, "POST", data=formData).data
+        new_tokens = hubspot_api.token_api_request(url, "POST", data=formData).data
         date_time_plus_25_minutes = datetime.now() + timedelta(minutes=25)
         tokens_for_save = {
             "access_token": new_tokens["access_token"],
@@ -144,46 +137,3 @@ def get_access_token(portal_id: int) -> str or False:
         print(e)
         return False
     return new_tokens["access_token"]
-
-
-def token_api_request(
-    url: str,
-    verb: Literal["GET", "POST"] = "GET",
-    nb_retry=0,
-    **kwargs,
-) -> HubspotResponse:
-    """_summary_
-
-    Args:
-        url (str): Url where the request is pointed to.
-        verb (Literal[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;], optional): This is used for the type of request the funtion will use. Defaults to "GET".
-        nb_retry (int, optional): This is the base number the retrys will start at 10 retrys max Defaults to 0.
-
-    Raises:
-        HubspotAPIError: A error if no paging is found in the resoponse
-
-    Returns:
-        HubspotResponse: A hubspot request that contains the text set of data if "paging is found in the response"
-    """
-    header = {"Content-Type": "application/x-www-form-urlencoded"}
-    try:
-        match verb:
-            case "POST":
-                response = requests.post(url, headers=header, data=kwargs.get("data", {}))
-                response = HubspotResponse(response, "ss")
-                return response
-            case "GET":
-                response = requests.get(url, headers=header)
-                response = HubspotResponse(response, "ss")
-                return response
-    except HubspotAPILimitReached:
-        if nb_retry > 10:
-            logging.error(f"After {nb_retry} we are still getting errors")
-            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
-        logging.info("sleeping for 5 seconds")
-        sleep(5)
-        logging.info("retrying")
-        return token_api_request(url, verb, nb_retry + 1, **kwargs)
-    except HubspotAPIError as e:
-        sentry_sdk.capture_exception(e)
-        return response

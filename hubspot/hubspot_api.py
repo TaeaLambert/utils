@@ -241,3 +241,46 @@ def get_local_access_token(portal_id: str) -> str:
         return local_tokens["access_token"]
     else:
         return get_access_token(portal_id)
+
+
+def token_api_request(
+    url: str,
+    verb: Literal["GET", "POST"] = "GET",
+    nb_retry=0,
+    **kwargs,
+) -> HubspotResponse:
+    """_summary_
+
+    Args:
+        url (str): Url where the request is pointed to.
+        verb (Literal[&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;], optional): This is used for the type of request the funtion will use. Defaults to "GET".
+        nb_retry (int, optional): This is the base number the retrys will start at 10 retrys max Defaults to 0.
+
+    Raises:
+        HubspotAPIError: A error if no paging is found in the resoponse
+
+    Returns:
+        HubspotResponse: A hubspot request that contains the text set of data if "paging is found in the response"
+    """
+    header = {"Content-Type": "application/x-www-form-urlencoded"}
+    try:
+        match verb:
+            case "POST":
+                response = requests.post(url, headers=header, data=kwargs.get("data", {}))
+                response = HubspotResponse(response, "ss")
+                return response
+            case "GET":
+                response = requests.get(url, headers=header)
+                response = HubspotResponse(response, "ss")
+                return response
+    except HubspotAPILimitReached:
+        if nb_retry > 10:
+            logging.error(f"After {nb_retry} we are still getting errors")
+            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+        logging.info("sleeping for 5 seconds")
+        sleep(5)
+        logging.info("retrying")
+        return token_api_request(url, verb, nb_retry + 1, **kwargs)
+    except HubspotAPIError as e:
+        sentry_sdk.capture_exception(e)
+        return response
