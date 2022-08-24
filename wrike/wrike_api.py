@@ -115,9 +115,9 @@ def formatted_tasks(response_json):
                 "Dates Type": datetor(task["dates"], "type"),
                 "Permalink": datetor(task, "permalink"),
                 "Resourse Type": datetor_array(task["customFields"], "IEACTPDZJUABKDUX"),
+                "Milestone": datetor_array(task["customFields"], "IEACTPDZJUAC43A3"),
                 "Budget points": float(datetor_array(task["customFields"], "IEACTPDZJUABEXK3")),
                 "Actual points": float(datetor_array(task["customFields"], "IEACTPDZJUAA7YIS")),
-                "Milestone": datetor_array(task["customFields"], "IEACTPDZJUAC43A3"),
             }
         )
     return response_array
