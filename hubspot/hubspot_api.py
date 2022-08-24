@@ -5,6 +5,7 @@ from typing import Literal
 from datetime import datetime
 
 import requests
+import sentry_sdk
 
 from program.utils.hubspot.hubspot_oauth import get_access_token
 from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
