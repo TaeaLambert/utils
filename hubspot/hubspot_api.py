@@ -45,16 +45,16 @@ class HubspotResponse:
             raise HubspotAPIError(response.text if response.text != "" else response.reason, response.status_code)
 
     @property
-    def results(self) -> dict:
+    def results(self) -> list:
         """_summary_
 
         This Returns a list contained in a api request if mutiple items are requested.
 
         You sould be using :func:`get_all_results()` funtion of this class as this makes
-        sure you are not missing any records if the response has paging
+        sure you are not missing any records if the response has paging eg properties
 
          Example::
-            {"results":[
+            [
                 {
                     "key":"value",
                     "key":"value",
@@ -82,13 +82,13 @@ class HubspotResponse:
                     "key":"value"
                     }
                 },
-            ]}
+            ]
 
 
         Returns:
-            dict: returns a dict that contains a list of dict's
+            list: returns a list that contains multiple dict's
         """
-        return self.data
+        return self.data.get("results")
 
     @property
     def has_pagination(self) -> bool:
