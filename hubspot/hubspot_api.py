@@ -164,7 +164,7 @@ class HubspotResponse:
             for result in current_response.results:
                 all_results.append(result)
 
-        return {"results": all_results}
+        return all_results
 
 
 def hubspot_request(
