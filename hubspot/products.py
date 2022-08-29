@@ -13,7 +13,7 @@ def create_csv_and_convert_to_list(JSON_FILE, CSV_FILE, data):
 def format_products(products: list[dict]):
     new_list = []
     object_holder = {}
-    for result in products.get("results"):
+    for result in products:
 
         # Object Id
         object_holder["Object Id"] = result["id"]

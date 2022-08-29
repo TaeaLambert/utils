@@ -161,6 +161,7 @@ class HubspotResponse:
         current_response = self
         while current_response.has_pagination:
             current_response = self.next()
+            self.data = current_response.data
             for result in current_response.results:
                 all_results.append(result)
 
