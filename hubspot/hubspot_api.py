@@ -1,3 +1,4 @@
+import json
 import os
 import logging
 from time import sleep
@@ -31,12 +32,15 @@ class HubspotResponse:
     data: dict
     status_code: int
 
-    def __init__(self, response: requests.Response, access_token: str) -> None:
+    def __init__(self, response: requests.Response, access_token: str, **kwargs) -> None:
         self.access_token = access_token
         self.status_code = response.status_code
         # raise HubspotAPILimitReached(response.text, response.status_code)
         if response.status_code >= 200 and response.status_code <= 299:
-            self.data = response.json()
+            if kwargs.get("type") == "GRAPHQL":
+                self.data = json.loads(response.text)
+            else:
+                self.data = response.json()
         else:
             logging.debug(f"{response.text}, {response.status_code}")
 
@@ -211,6 +215,10 @@ def hubspot_request(
             case "PATCH":
                 response = requests.patch(url, headers=header, json=kwargs.get("data", {}))
                 response = HubspotResponse(response, access_token)
+                return response
+            case "GRAPHQL":
+                response = requests.post(url + "?hapikey=" + os.getenv("HAPIKEY"), json=kwargs.get("data", {}))
+                response = HubspotResponse(response, "", type="GRAPHQL")
                 return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
