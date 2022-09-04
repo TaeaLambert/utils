@@ -11,6 +11,7 @@ def format_url(url: str) -> str:
         str: Returns a formatted url. (replace " " with "-" --> .lower() --> replace all special char beside '-')
     """
     formatted_url = url.replace(" ", "-").lower()
+    formatted_url = formatted_url.replace(",", "").lower()
     # try:
     #     formatted_url_done = urlquote(formatted_url)
     # except Exception as e:
