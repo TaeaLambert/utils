@@ -9,8 +9,8 @@ import requests
 import sentry_sdk
 
 from program.utils.hubspot.hubspot_oauth import get_access_token
-from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached
-from program.utils.hubspot.files import json_to_dict
+from program.utils.hubspot.hubspot_api_exection import HubspotAPIError, HubspotAPILimitReached, HubspotAPIServerError
+from program.utils.hubspot.files import json_to_dict, write_to_file
 
 
 class HubspotResponse:
@@ -42,9 +42,15 @@ class HubspotResponse:
             else:
                 self.data = response.json()
         else:
-            logging.debug(f"{response.text}, {response.status_code}")
-
-            if response.status_code == 429:
+            # logging.debug(f"{response.text}, {response.status_code}")
+            time_now = datetime.now().strftime("%H:%M:%S.%d-%m-%Y_%z")
+            if response.status_code == 403:
+                write_to_file(
+                    response.content.decode() if type(response.content) == bytes else response.content,
+                    f"./error/hubspot_api_error_{time_now}.html",
+                )
+                raise HubspotAPIServerError(response.reason, response.status_code, response.text)
+            elif response.status_code == 429:
                 raise HubspotAPILimitReached(response.text, response.status_code)
             raise HubspotAPIError(response.text if response.text != "" else response.reason, response.status_code)
 
