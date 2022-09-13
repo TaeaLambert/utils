@@ -1,11 +1,11 @@
 import os
 from datetime import datetime, timedelta
-
+from requests import Response
 import program.utils.hubspot.hubspot_api as hubspot_api
 from program.utils.hubspot.mongodb import get_tokens_by_portal_id_mongodb, save_token_mongodb
 from program.utils.hubspot.files import write_to_json_overwite
 
-# 1st to run
+# V1
 def hubspot_login(code: str) -> list[str]:
     """_summary_
     This funtion is used to call other funtions to install the application into a hubspot portal
@@ -28,7 +28,31 @@ def hubspot_login(code: str) -> list[str]:
     return 400
 
 
-# 2nd to run V1
+# V2
+def hubspot_login_create_properties(code: str) -> list[str, str]:
+    """_summary_
+    This funtion is used when the hubspot application is installed into a portal
+    and the program must create a one or more properties before the login process is completed.
+
+    Args:
+        code (str):  This is a code provided by hubspot in the url
+
+    Returns:
+        list[access_token:str, portal_id:str]: the access token that will be used to create the properties and a portal id so the program can redirect correctly.
+    """
+    print("login")
+    tokens: Response = oauth_login(code)
+    if tokens:
+        print("saving tokens.....")
+        hub = check_access_token(tokens["access_token"])
+        tokens["portal_id"] = str(hub["hub_id"])
+        save_token_mongodb(tokens)
+        print("saved tokens.....")
+        return [tokens["access_token"], str(hub["hub_id"])]
+    return [tokens.text, 400]
+
+
+# 2nd to run
 def oauth_login(code: str) -> dict or None:
     """_summary_
     This funtion is used when the hubspot application is installed into a portal
@@ -54,31 +78,7 @@ def oauth_login(code: str) -> dict or None:
     if response.status_code != 400:
         return response.data
     else:
-        return None
-
-
-# 2nd to run V2
-def hubspot_login_create_properties(code: str) -> list[str, str]:
-    """_summary_
-    This funtion is used when the hubspot application is installed into a portal
-    and the program must create a one or more properties before the login process is completed.
-
-    Args:
-        code (str):  This is a code provided by hubspot in the url
-
-    Returns:
-        list[str, str]: the access token that will be used to create the properties and a portal id so the program can redirect correctly.
-    """
-    print("login")
-    tokens = oauth_login(code)
-    if tokens:
-        print("saving tokens.....")
-        hub = check_access_token(tokens["access_token"])
-        tokens["portal_id"] = str(hub["hub_id"])
-        save_token_mongodb(tokens)
-        print("saved tokens.....")
-        return [tokens["access_token"], str(hub["hub_id"])]
-    return 400
+        return response
 
 
 # 3rd to run
