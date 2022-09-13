@@ -63,7 +63,8 @@ class HubspotResponse:
         You sould be using :func:`get_all_results()` funtion of this class as this makes
         sure you are not missing any records if the response has paging eg properties
 
-         Example::
+        Example::
+
             [
                 {
                     "key":"value",
