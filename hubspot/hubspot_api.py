@@ -182,7 +182,7 @@ class HubspotResponse:
 def hubspot_request(
     access_token: str,
     url: str,
-    verb: Literal["GET", "POST", "PUT", "PATCH"] = "GET",
+    verb: Literal["GET", "POST", "PUT", "PATCH", "GRAPHQL"] = "GET",
     nb_retry=0,
     **kwargs,
 ) -> HubspotResponse:
@@ -224,8 +224,8 @@ def hubspot_request(
                 response = HubspotResponse(response, access_token)
                 return response
             case "GRAPHQL":
-                response = requests.post(url + "?hapikey=" + os.getenv("HAPIKEY"), json=kwargs.get("data", {}))
-                response = HubspotResponse(response, "", type="GRAPHQL")
+                response = requests.post(url, headers=header, json=kwargs.get("data", {}))
+                response = HubspotResponse(response, access_token, type="GRAPHQL")
                 return response
     except HubspotAPILimitReached:
         if nb_retry > 10:
