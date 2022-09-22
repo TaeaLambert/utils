@@ -31,7 +31,7 @@ class cache_workflow_response:
 
         if os.path.exists(BASE_LOCATION + portal_id + "_" + file_name + ".json"):
             file_data = json_to_dict(self.file_location)
-            self.expiry_datetime = datetime.strftime(file_data["expiry"], "%Y-%m-%dT%H:%M:%S:%fZ")
+            self.expiry_datetime = datetime.strptime(file_data["expiry"], "%Y-%m-%dT%H:%M:%S:%fZ")
             self.data = file_data["data"]
         else:
             self.expiry_datetime = False
@@ -46,7 +46,7 @@ class cache_workflow_response:
         Returns:
             bool: True or False
         """
-        if self.data == True:
+        if self.data != False:
             return True
         else:
             return False
@@ -65,7 +65,7 @@ class cache_workflow_response:
             bool: True or False
         """
         if self.has_data:
-            return self.time_now > self.expiry_datetime
+            return self.expiry_datetime > self.time_now
         else:
             return False
 
@@ -73,7 +73,9 @@ class cache_workflow_response:
         if self.file_location != False:
 
             self.expiry_datetime = datetime.now() + self.timeout_duration
-            write_to_json_overwite({"expiry": self.expiry_datetime, "data": data}, self.file_location)
+            write_to_json_overwite(
+                {"expiry": self.expiry_datetime.strftime("%Y-%m-%dT%H:%M:%S:%fZ"), "data": data}, self.file_location
+            )
 
             self.data = data
         else:
