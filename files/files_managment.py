@@ -1,7 +1,6 @@
 import json
 import csv
 import pathlib as Path
-import pandas as pd
 
 
 def write_to_json(data, path):
@@ -23,11 +22,6 @@ def write_to_txt(data, path):
     with open(path, "w", encoding="utf8") as outfile:
         outfile.write(data)
     return "done"
-
-
-def json_to_csv(json_path, csv_path):
-    df = pd.read_json(json_path)
-    df.to_csv(csv_path, index=False)
 
 
 def csv_to_list(path: Path):
