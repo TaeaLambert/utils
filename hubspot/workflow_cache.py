@@ -6,7 +6,7 @@ BASE_LOCATION = "./cached_responses/"
 FILE_FORMAT = {"expiry": datetime.now(), "data": {}}
 
 
-class cache_workflow_response:
+class cache_response:
 
     portal_id: str
     file_name: str
@@ -95,26 +95,3 @@ class cache_workflow_response:
 # return data
 # if file dosent exist
 # return "No File"
-
-
-# if os.path.exists(f"./cached_responses/{portal_id}.json") == True:
-#         data = json_to_dict(f"./cached_responses/{portal_id}.json")
-#         # TODO:FORMAT date below.
-#         if datetime.strptime(data["expire"], "%Y-%m-%dT%H:%M:%S:%fZ") > datetime.now():
-#             return data["data"]
-#         else:
-#             data = get_properties_multi_object_write_only_by_type(access_token, objects, ["string"])
-#             now_plus_15_sec = datetime.now() + timedelta(seconds=15)
-#             write_to_json_overwite(
-#                 {"expire": now_plus_15_sec.strftime("%Y-%m-%dT%H:%M:%S:%fZ"), "data": data},
-#                 f"./cached_responses/{portal_id}.json",
-#             )
-#             return data
-#     else:
-#         data = get_properties_multi_object_write_only_by_type(access_token, objects, ["string"])
-#         now_plus_15_sec = datetime.now() + timedelta(seconds=15)
-#         write_to_json_overwite(
-#             {"expire": now_plus_15_sec.strftime("%Y-%m-%dT%H:%M:%S:%fZ"), "data": data},
-#             f"./cached_responses/{portal_id}.json",
-#         )
-#         return data
