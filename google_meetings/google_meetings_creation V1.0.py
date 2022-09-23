@@ -9,8 +9,6 @@ from google.oauth2 import service_account
 # https://www.youtube.com/watch?v=1JkKtGFnua8
 # https://developers.google.com/calendar/api/v3/reference/events/insert
 
-# TODO: Talk to benoit about service account vs api key for this microapp
-
 
 def google_crential_env_to_file():
     with open(os.getenv("GOOGLE_CONFIG_LOCATION"), "w") as f:
@@ -62,7 +60,6 @@ class calendar_events_service_account:
 
         # PDT/MST/GMT-12
         GMT_OFF = "-12:00" if "country" not in kwargs else get_gmt(kwargs["country"])
-        # TODO pycountry get gmt offset from country passed in otherwise get New Zealand GMT offset.
 
         send_updates = None if "send_updates" not in kwargs else kwargs["send_updates"]
         supports_attachments = False if "supports_attachments" not in kwargs else kwargs["supports_attachments"]

@@ -8,8 +8,7 @@ from dateutil.relativedelta import relativedelta
 class WrikeConfig:
     wrikekey = None
     get_tasks_url = (
-        "https://www.wrike.com/api/v4/tasks?pageSize=1000&fields="
-        '["customFields","superTaskIds","superParentIds","parentIds"]'
+        "https://www.wrike.com/api/v4/tasks?pageSize=1000&fields=" '["customFields","superTaskIds","superParentIds","parentIds"]'
     )
     get_folders_url = "https://www.wrike.com/api/v4/folders?fields=[customFields]&project=false"
 
@@ -130,8 +129,6 @@ def get_projects(wrike_config=None):
     folder_json = response.json()["data"]
     response_array = []
     for folder in folder_json:
-
-        # TODO : rest of custom fields
         response_array.append(
             {
                 "(project) Folder id": folder["id"],
