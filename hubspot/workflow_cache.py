@@ -12,7 +12,6 @@ class cache_response:
     file_name: str
     timeout_duration: timedelta
     time_now: datetime
-
     expiry_datetime: datetime or bool
     data: dict or bool
 
@@ -21,12 +20,11 @@ class cache_response:
         portal_id: str,
         file_name: str,
         timeout_duration: timedelta = timedelta(minutes=5),
-        time_now: datetime = datetime.now(),
     ):
         self.portal_id = portal_id
         self.file_name = file_name
         self.timeout_duration = timeout_duration
-        self.time_now = time_now
+        self.time_now = datetime.now()
         self.file_location = BASE_LOCATION + portal_id + "_" + file_name + ".json"
 
         if os.path.exists(BASE_LOCATION + portal_id + "_" + file_name + ".json"):
