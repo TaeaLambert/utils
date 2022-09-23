@@ -12,20 +12,18 @@ class mongo_client:
         self.collection = self.db[os.getenv("MONGO_DATA_COLLECTION")]
         self.timeout = datetime.now() + timedelta(minutes=15)
 
-    def save_object_increment_code_mongodb(self, portal_id, object_type, prop_to_set, data):
+    def save_object_increment_code_mongodb(self, portal_id, object_type, data):
         try:
-            self.collection.find_one_and_update(
-                {"portal_id": portal_id}, {"$set": {"objects": {object_type: {prop_to_set: data}}}}, upsert=True
-            )
+            self.collection.find_one_and_update({"portal_id": portal_id}, {"$set": {"objects": {object_type: data}}}, upsert=True)
         except ServerSelectionTimeoutError as err:
             # do whatever you need
             print(err)
             return 400
 
-    def get_object_increment_code_mongodb(self, portal_id, object_type, prop_to_set):
+    def get_object_increment_code_mongodb(self, portal_id, object_type):
         try:
             document: dict = self.collection.find_one({"portal_id": portal_id})
-            return document.get("objects").get(object_type).get(prop_to_set)
+            return document.get("objects").get(object_type)
         except ServerSelectionTimeoutError as err:
             # do whatever you need
             print(err)
