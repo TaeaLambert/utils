@@ -1,6 +1,6 @@
 from requests import request
 
-from pipedrive.pipedrive_response import Pipedrive_response
+from program.utils.pipedrive.pipedrive_response import Pipedrive_response
 
 
 class Pipedrive_client:
@@ -42,7 +42,7 @@ class Pipedrive_client:
 
     def download_file(self, id):
         url = f"https://api.pipedrive.com/v1/files/{id}/download?api_token={self.__api_token}"
-        response = Pipedrive_response(request("GET", url, stream=True), f"./downloaded_files/pipedrive_file_{id}")
+        response = Pipedrive_response(request("GET", url, stream=True), f"./program/downloaded_files/pipedrive_file_{id}")
         return response
 
     def get_all_files(self) -> Pipedrive_response:

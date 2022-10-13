@@ -1,6 +1,6 @@
 import requests
 import urllib.parse as urlparse
-from pipedrive.pipedrive_api_execution import Pipedrive_api_error
+from program.utils.pipedrive.pipedrive_api_execution import Pipedrive_api_error
 
 
 class Pipedrive_response:
