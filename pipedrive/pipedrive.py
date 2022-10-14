@@ -40,9 +40,10 @@ class Pipedrive_client:
 
     # Files
 
-    def download_file(self, id):
+    def download_file(self, id, name: str):
         url = f"https://api.pipedrive.com/v1/files/{id}/download?api_token={self.__api_token}"
-        response = Pipedrive_response(request("GET", url, stream=True), f"./program/downloaded_files/pipedrive_file_{id}")
+        file_name = name.split(".")[0]
+        response = Pipedrive_response(request("GET", url, stream=True), f"./program/downloaded_files/{file_name}")
         return response
 
     def get_all_files(self) -> Pipedrive_response:
