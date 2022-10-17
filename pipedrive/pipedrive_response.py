@@ -14,7 +14,7 @@ class Pipedrive_response:
     def __init__(self, response: requests.Response, file_name: str = "") -> None:
         if response.status_code >= 200 and response.status_code <= 299:
             self.url = response.url
-            if "files" in response.url:
+            if "files/" in response.url:
                 with open(f"{file_name}.pdf", "wb") as f:
                     f.write(response.content)
             else:

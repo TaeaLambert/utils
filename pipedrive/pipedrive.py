@@ -30,7 +30,7 @@ class Pipedrive_client:
             print(f"Getting all activities info: Loop({count}) activities({len(response.data)})")
         return response
 
-    def get_all_activities_details(self, data: list[dict]) -> Pipedrive_response:
+    def get_all_activities_details(self, data: list[dict]) -> list[dict]:
         response_list = []
         for activity in data:
             response_list.append(self.get_one_activity(activity.get("id")).data)
@@ -54,7 +54,7 @@ class Pipedrive_client:
             pagination_response = Pipedrive_response(request("GET", response.get_pagination_url))
             response.add_pagination_response(pagination_response.data)
             response.response = pagination_response.response
-            response.set_url(pagination_response.url)
+            response.set_url(pagination_response.get_pagination_url)
 
             count += 1
             print(f"Getting all file info: Loop({count}) Files({len(response.data)})")
