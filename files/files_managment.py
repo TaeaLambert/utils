@@ -24,6 +24,13 @@ def write_to_txt(data, path):
     return "done"
 
 
+def append_to_txt(data, path):
+    # write data to a json file
+    with open(path, "a", encoding="utf8") as outfile:
+        outfile.write(data)
+    return "done"
+
+
 def csv_to_list(path: Path):
     with open(path, encoding="utf-8") as f:
         reader = csv.reader(f)
