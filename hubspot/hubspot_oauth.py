@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from requests import Response
 import program.utils.hubspot.hubspot_api as hubspot_api
-from program.utils.hubspot.mongodb import get_tokens_by_portal_id_mongodb, save_token_mongodb
+from program.utils.hubspot.firestore import get_tokens_by_portal_id_firestore, save_token_firestore
 from program.utils.hubspot.files import write_to_json_overwite
 
 # V1
@@ -22,7 +22,7 @@ def hubspot_login(code: str) -> list[str]:
         print("saving tokens.....")
         hub = check_access_token(tokens["access_token"])
         tokens["portal_id"] = str(hub["hub_id"])
-        save_token_mongodb(tokens)
+        save_token_firestore(tokens)
         print("saved tokens.....")
         return str(hub["hub_id"])
     return 400
@@ -46,7 +46,7 @@ def hubspot_login_create_properties(code: str) -> list[str, str]:
         print("saving tokens.....")
         hub = check_access_token(tokens["access_token"])
         tokens["portal_id"] = str(hub["hub_id"])
-        save_token_mongodb(tokens)
+        save_token_firestore(tokens)
         print("saved tokens.....")
         return [tokens["access_token"], str(hub["hub_id"])]
     return [tokens.text, 400]
@@ -112,7 +112,7 @@ def get_access_token(portal_id: int) -> str or False:
     Returns:
         str or False: If the request is successfully completed the a access token will be returned else False will be returned.
     """
-    tokens = get_tokens_by_portal_id_mongodb(portal_id)
+    tokens = get_tokens_by_portal_id_firestore(portal_id)
     refresh_token = tokens["refresh_token"]
     formData = (
         "grant_type=refresh_token&client_id="
