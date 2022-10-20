@@ -50,12 +50,15 @@ class Pipedrive_client:
         url = f"https://api.pipedrive.com/v1/files?limit=500&start=0&api_token={self.__api_token}"
         response = Pipedrive_response(request("GET", url))
         count = 0
+        del url
         while response.has_pagination == True:
             pagination_response = Pipedrive_response(request("GET", response.get_pagination_url))
+            if pagination_response.data == None:
+                break
             response.add_pagination_response(pagination_response.data)
             response.response = pagination_response.response
             response.set_url(pagination_response.get_pagination_url)
 
             count += 1
-            print(f"Getting all file info: Loop({count}) Files({len(response.data)})")
+            print(f"Getting all file info: Loop({count+1}) Files({len(response.data)})")
         return response
