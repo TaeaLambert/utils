@@ -23,6 +23,7 @@ class Firestore_Client:
                     return values_in_db[object_type][property]
                 else:
                     values_in_db[object_type][property] = value_to_start_at
+                    self.__client.document(portal_id).set(values_in_db)
                     return value_to_start_at
             else:
                 values_in_db = {object_type: {property: value_to_start_at}}
