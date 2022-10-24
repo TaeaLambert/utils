@@ -3,10 +3,9 @@ import settings
 
 # import pymongo
 
-firestore_collection = settings.get_firestore_client().collection(os.getenv("COLLECTION"))
-
 
 def save_token_firestore(tokens):
+    firestore_collection = settings.get_firestore_client().collection(os.getenv("COLLECTION"))
     """_summary_
     This funtion is used to save a new set of tokens (refresh, access) to the selected DB in the .env file
 
@@ -32,6 +31,7 @@ def save_token_firestore(tokens):
 
 
 def get_tokens_by_portal_id_firestore(portal_id: str):
+    firestore_collection = settings.get_firestore_client().collection(os.getenv("COLLECTION"))
     """_summary_
     This funtion get a set of tokens within the selected DB (.env file) using the portal id as a queary parameter
 
