@@ -1,6 +1,9 @@
 import os
 import settings
 from google.cloud.firestore_v1 import Client, DocumentSnapshot
+import google.cloud.firestore as firestore
+from time import sleep
+from datetime import datetime, timedelta
 
 
 class Firestore_Client:
@@ -10,25 +13,63 @@ class Firestore_Client:
         self.__client = settings.get_firestore_client().collection(os.getenv("COLLECTION") + "-data")
 
     def increment_code_firestore(self, portal_id, object_type, property, increment_value, value_to_start_at):
+        # change to try exception
+        # Try else stuff
+        # else do the stuff in the if
         if self.__client.document(portal_id).get().exists == False:
-            values_in_db = {object_type: {property: value_to_start_at}}
+            values_in_db = {object_type: {property: value_to_start_at, property + "-lock": None}}
             self.__client.document(portal_id).set(values_in_db)
             return value_to_start_at
         else:
+
             values_in_db: DocumentSnapshot = self.__client.document(portal_id).get().to_dict()
             if object_type in values_in_db:
                 if property in values_in_db[object_type]:
-                    values_in_db[object_type][property] = values_in_db[object_type][property] + increment_value
-                    self.__client.document(portal_id).set(values_in_db)
-                    return values_in_db[object_type][property]
+                    if values_in_db[object_type][property + "-lock"] != None and values_in_db[object_type][
+                        property + "-lock"
+                    ] < datetime.now() + timedelta(minutes=1):
+                        return None
+
+                    transaction = settings.get_firestore_client().transaction()
+                    ref = self.__client.document(portal_id)
+                    try:
+                        return self.update_in_transaction(
+                            transaction,
+                            ref,
+                            object_type=object_type,
+                            property=property,
+                            increment=increment_value,
+                        )
+                    except Exception as e:
+                        print(e)
+                        raise e
                 else:
                     values_in_db[object_type][property] = value_to_start_at
+                    values_in_db[object_type][property + "-lock"] = None
                     self.__client.document(portal_id).set(values_in_db)
                     return value_to_start_at
             else:
-                values_in_db = {object_type: {property: value_to_start_at}}
+                values_in_db = {object_type: {property: value_to_start_at, property + "-lock": None}}
                 self.__client.document(portal_id).set(values_in_db)
                 return value_to_start_at
+
+    @firestore.transactional
+    def update_in_transaction(transaction, ref, *args, **kwargs):
+        snapshot: DocumentSnapshot = ref.get(transaction=transaction)
+        snapshot_dict = snapshot.to_dict()
+
+        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "-lock"] = datetime.now()
+        transaction.update(ref, snapshot_dict)
+
+        snapshot_dict[kwargs["object_type"]][kwargs["property"]] = (
+            snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
+        )
+        transaction.update(ref, snapshot_dict)
+
+        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "-lock"] = None
+        transaction.update(ref, snapshot_dict)
+
+        return snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
 
     def reset_code_firestore(self, portal_id, object_type, property, value):
         if self.__client.document(portal_id).get().exists == True:
