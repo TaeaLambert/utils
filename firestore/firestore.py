@@ -30,33 +30,20 @@ class Firestore_Client:
                         ] < datetime.now() + timedelta(minutes=1):
                             return None
 
-                        transaction = settings.get_firestore_client().transaction()
-                        ref = self.__client.document(portal_id)
-                        try:
-                            return self.update_in_transaction_increment(
-                                transaction,
-                                ref,
-                                object_type=object_type,
-                                property=property,
-                                increment=increment_value,
-                            )
-                        except Exception as e:
-                            print(e)
-                            raise e
-                    else:
-                        transaction = settings.get_firestore_client().transaction()
-                        ref = self.__client.document(portal_id)
-                        try:
-                            return self.update_in_transaction_increment(
-                                transaction,
-                                ref,
-                                object_type=object_type,
-                                property=property,
-                                increment=increment_value,
-                            )
-                        except Exception as e:
-                            print(e)
-                            raise e
+                    transaction = settings.get_firestore_client().transaction()
+                    ref = self.__client.document(portal_id)
+                    try:
+                        return self.update_in_transaction_increment(
+                            transaction,
+                            ref,
+                            object_type=object_type,
+                            property=property,
+                            increment=increment_value,
+                        )
+                    except Exception as e:
+                        print(e)
+                        raise e
+
                 else:
                     values_in_db[object_type][property] = value_to_start_at
                     values_in_db[object_type][property + "_lock"] = None
@@ -91,18 +78,21 @@ class Firestore_Client:
         snapshot: DocumentSnapshot = ref.get(transaction=transaction)
         snapshot_dict = snapshot.to_dict()
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "_lock"] = datetime.now()
+        object_type = kwargs["object_type"]
+        property = kwargs["property"]
+        property_lock = kwargs["property"] + "_lock"
+        increment = kwargs["increment"]
+
+        snapshot_dict[object_type][property_lock] = datetime.now()
         transaction.update(ref, snapshot_dict)
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"]] = (
-            snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
-        )
+        snapshot_dict[object_type][property] = snapshot_dict[object_type][property] + increment
         transaction.update(ref, snapshot_dict)
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "_lock"] = None
+        snapshot_dict[object_type][property_lock] = None
         transaction.update(ref, snapshot_dict)
 
-        return snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
+        return snapshot_dict[object_type][property] + increment
 
     # Generate unique code generator micro app
 
@@ -111,7 +101,7 @@ class Firestore_Client:
             objects = self.__client.document(portal_id).get().to_dict()
             if object_type in objects:
                 if property in objects[object_type]:
-                    if value in objects[object_type][property]:
+                    if objects[object_type][property] != None and value in objects[object_type][property]:
                         return True
                     else:
                         return False
@@ -125,16 +115,32 @@ class Firestore_Client:
     def unique_num_letter_save_value_to_db(self, portal_id: str, object_type: str, property, value: str) -> bool or None:
         if self.unique_num_letter_is_value_in_db(portal_id, object_type, property, value) != True:
 
-            value_1 = self.__client.document(portal_id).get()
-            value_2 = self.__client.document(portal_id).get().exists
-
             if self.__client.document(portal_id).get().exists == True:
                 objects = self.__client.document(portal_id).get().to_dict()
                 if object_type in objects:
                     if property in objects[object_type]:
+                        if property + "_lock" in objects[object_type]:
+                            if objects[object_type][property + "_lock"] != None and objects[object_type][
+                                property + "_lock"
+                            ] < datetime.now() + timedelta(minutes=1):
+                                return None
+                        transaction = settings.get_firestore_client().transaction()
+                        ref = self.__client.document(portal_id)
                         # self.update_in_transaction_unique_code_generator()
-                        objects[object_type][property].append(value)
-                        self.__client.document(portal_id).set(objects)
+                        # objects[object_type][property].append(value)
+                        # self.__client.document(portal_id).set(objects)
+                        try:
+                            self.update_in_transaction_unique_code_generator(
+                                transaction,
+                                ref,
+                                object_type=object_type,
+                                property=property,
+                                value=value,
+                            )
+                        except Exception as e:
+                            print(e)
+                            raise e
+
                     else:
                         objects[object_type][property] = [value]
                         self.__client.document(portal_id).set(objects)
@@ -152,15 +158,18 @@ class Firestore_Client:
         snapshot: DocumentSnapshot = ref.get(transaction=transaction)
         snapshot_dict = snapshot.to_dict()
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "_lock"] = datetime.now()
+        object_type = kwargs["object_type"]
+        property = kwargs["property"]
+        property_lock = kwargs["property"] + "_lock"
+        value = kwargs["value"]
+
+        snapshot_dict[object_type][property_lock] = datetime.now()
         transaction.update(ref, snapshot_dict)
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"]] = (
-            snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
-        )
+        snapshot_dict[object_type][property].append(value)
         transaction.update(ref, snapshot_dict)
 
-        snapshot_dict[kwargs["object_type"]][kwargs["property"] + "_lock"] = None
+        snapshot_dict[object_type][property_lock] = None
         transaction.update(ref, snapshot_dict)
 
-        return snapshot_dict[kwargs["object_type"]][kwargs["property"]] + kwargs["increment"]
+        return snapshot_dict[object_type][property]
