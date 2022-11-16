@@ -32,5 +32,12 @@ class HubspotAPIServerError(IntegrationGlueException):
 
 
 class HubspotAPILimitReached(HubspotAPIError):
+    def __init__(self, issue: str, status_code: int):
+        self.issue = issue
+        self.status_code = status_code
+
     def __str__(self):
-        return f"Hubspot API error {self.issue} API LIMIT REACHED"
+        return f"Hubspot API limmit reached. {self.issue} returned a {self.status_code} status code"
+
+    def to_string(self):
+        return str(self.__str__())

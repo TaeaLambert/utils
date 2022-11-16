@@ -236,7 +236,7 @@ def hubspot_request(
     except HubspotAPILimitReached:
         if nb_retry > 10:
             logging.error(f"After {nb_retry} we are still getting errors")
-            raise HubspotAPILimitReached(f"After {nb_retry} we are still getting errors", 429)
+            raise HubspotAPILimitReached(f"After {nb_retry} retrys we are still getting errors", 429)
         logging.info("sleeping for 5 seconds")
         sleep(5)
         logging.info("retrying")
