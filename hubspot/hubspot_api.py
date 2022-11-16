@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import random
 from time import sleep
 from typing import Literal
 from datetime import datetime
@@ -238,7 +239,9 @@ def hubspot_request(
             logging.error(f"After {nb_retry} we are still getting errors")
             raise HubspotAPILimitReached(f"After {nb_retry} retrys we are still getting errors", 429)
         logging.info("sleeping for 5 seconds")
-        sleep(5)
+        sleep_count = "56789"
+        sleep_time = random.choice(sleep_count)
+        sleep(int(sleep_time))
         logging.info("retrying")
         return hubspot_request(access_token, url, verb, nb_retry + 1, **kwargs)
 
