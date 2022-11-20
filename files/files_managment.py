@@ -1,3 +1,4 @@
+import glob
 import json
 import csv
 import pathlib as Path
@@ -45,3 +46,7 @@ def txt_to_list(path: Path):
 def json_to_dict(path: Path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def get_list_of_file_in_path(path: Path):
+    return glob.glob(path)
