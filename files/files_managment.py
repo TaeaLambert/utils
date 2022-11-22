@@ -1,6 +1,7 @@
 import glob
 import json
 import csv
+import os
 import pathlib as Path
 
 
@@ -50,3 +51,10 @@ def json_to_dict(path: Path):
 
 def get_list_of_file_in_path(path: Path):
     return glob.glob(path)
+
+
+def get_lastest_file(path):
+    list_of_files = glob.glob(path)  # * means all if need specific format then *.csv
+    latest_file = max(list_of_files, key=os.path.getctime)
+    print(latest_file)
+    return latest_file
