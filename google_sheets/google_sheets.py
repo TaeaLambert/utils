@@ -18,3 +18,37 @@ class google_sheets:
         sh = self.__client.open_by_key(sheet_id)
         worksheet = sh.worksheet(worksheet).update_acell(cell, value)
         return f"{worksheet} cell: {cell} set to {value}"
+
+    def set_cell_format(self, sheet_id, worksheet, cell, value):
+        """_summary_
+
+        Args:
+            sheet_id (_type_): _description_
+            worksheet (_type_): _description_
+            cell (_type_): _description_
+            value (_type_): _description_
+
+            {
+                "backgroundColor": {
+                "red": 0.0,
+                "green": 0.0,
+                "blue": 0.0
+                },
+                "horizontalAlignment": "CENTER",
+                "textFormat": {
+                "foregroundColor": {
+                    "red": 1.0,
+                    "green": 1.0,
+                    "blue": 1.0
+                },
+                "fontSize": 12,
+                "bold": True
+                }
+            }
+
+        Returns:
+            _type_: _description_
+        """
+        sh = self.__client.open_by_key(sheet_id)
+        worksheet = sh.worksheet(worksheet).format(cell, value)
+        return f"{worksheet} cell: {cell} formatted to {value}"
