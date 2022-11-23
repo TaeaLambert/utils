@@ -35,3 +35,8 @@ class google_sheets:
         sh = self.__client.open_by_key(sheet_id)
         worksheet = sh.worksheet(worksheet)
         return pd.DataFrame(worksheet.get_all_records())
+
+    def set_cell_state(self, sheet_id, worksheet, cell, value):
+        sh = self.__client.open_by_key(sheet_id)
+        worksheet = sh.worksheet(worksheet).update_acell(cell, value)
+        return f"{worksheet} cell: {cell} set to {value}"
