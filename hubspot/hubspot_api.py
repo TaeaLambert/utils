@@ -40,6 +40,8 @@ class HubspotResponse:
         if response.status_code >= 200 and response.status_code <= 299:
             if kwargs.get("type") == "GRAPHQL":
                 self.data = json.loads(response.text)
+            elif response.status_code == 204:
+                self.data = "Deleted Succesfully"
             else:
                 self.data = response.json()
         else:
@@ -183,7 +185,7 @@ class HubspotResponse:
 def hubspot_request(
     access_token: str,
     url: str,
-    verb: Literal["GET", "POST", "PUT", "PATCH", "GRAPHQL", "FILES"] = "GET",
+    verb: Literal["GET", "POST", "PUT", "PATCH", "DELETE", "GRAPHQL", "FILES"] = "GET",
     nb_retry=0,
     **kwargs,
 ) -> HubspotResponse:
@@ -222,6 +224,10 @@ def hubspot_request(
                 return response
             case "PATCH":
                 response = requests.patch(url, headers=header, json=kwargs.get("data", {}))
+                response = HubspotResponse(response, access_token)
+                return response
+            case "DELETE":
+                response = requests.delete(url, headers=header, json=kwargs.get("data", {}))
                 response = HubspotResponse(response, access_token)
                 return response
             case "GRAPHQL":
