@@ -60,6 +60,8 @@ class SharePoint:
     def upload_file(self, file_name, folder_name, content):
         conn = self._auth()
         target_folder_url = f"/sites/{self.sharepoint_site_name}/{self.sharepoint_doc}/{folder_name}"
+        if target_folder_url[len(target_folder_url) - 1 : len(target_folder_url)] == "/":
+            target_folder_url = target_folder_url[:-1]
         target_folder = conn.web.get_folder_by_server_relative_path(target_folder_url)
         try:
             response = target_folder.upload_file(file_name, content).execute_query()
