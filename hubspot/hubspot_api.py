@@ -185,7 +185,7 @@ class HubspotResponse:
 def hubspot_request(
     access_token: str,
     url: str,
-    verb: Literal["GET", "POST", "PUT", "PATCH", "DELETE", "GRAPHQL", "FILES"] = "GET",
+    verb: Literal["GET", "POST", "PUT", "PATCH", "DELETE", "GRAPHQL", "FILES", "FILES_UPLOAD"] = "GET",
     nb_retry=0,
     **kwargs,
 ) -> HubspotResponse:
@@ -238,6 +238,12 @@ def hubspot_request(
                 header.pop("Content-Type")
                 header.pop("Accept")
                 response = requests.post(url, headers=header, files=kwargs.get("data"))
+                response = HubspotResponse(response, access_token)
+                return response
+            case "FILES_UPLOAD":
+                header.pop("Content-Type")
+                header.pop("Accept")
+                response = requests.post(url, headers=header, data=kwargs.get("data", {}), files=kwargs.get("files", {}))
                 response = HubspotResponse(response, access_token)
                 return response
     except HubspotAPILimitReached:
