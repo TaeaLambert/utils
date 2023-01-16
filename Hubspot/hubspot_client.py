@@ -11,6 +11,7 @@ class HubspotClient:
         self._client = get_hubspot_glue_client(auth_token, priority)
 
     def change_auth_token(self, auth_token: str):
+        assert isinstance(self._client._transport, GlueHubspotTransport)
         self._client._transport.auth_token = auth_token  # noqa
 
     def get_object(
@@ -20,8 +21,9 @@ class HubspotClient:
         properties: list[str],
         unique_property_key="hs_object_id",
     ):
+
         pass
 
     def get_stats(self):
-        self._client._transport: GlueHubspotTransport  # noqa
-        return self._client._transport.nb_read  # noqa
+        assert isinstance(self._client._transport, GlueHubspotTransport)
+        return self._client._transport.nb_reads  # noqa
