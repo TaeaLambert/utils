@@ -57,3 +57,13 @@ def get_tokens_by_portal_id_firestore(portal_id: str):
         return firestore_collection.document(portal_id).get().to_dict()
     else:
         return "Not Found"
+
+
+def get_tokens_by_microapp():
+    firestore_collection = settings.get_firestore_client().collection(os.getenv("COLLECTION"))
+    tokens_stored = firestore_collection.get()
+    portals = []
+    for token in tokens_stored:
+        portal_id = token._data["portal_id"]
+        portals.append(portal_id)
+    return portals
