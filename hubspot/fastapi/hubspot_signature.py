@@ -7,11 +7,11 @@ from fastapi import HTTPException, Header, Request
 
 
 async def verify_hubspot_signature(request: Request, x_hubspot_signature_v3: str = Header()):
-    print("in verify_hubspot_signature")
-    print(x_hubspot_signature_v3)
+    # print("in verify_hubspot_signature")
+    # print(x_hubspot_signature_v3)
     signature = await V3_signature(request)
     if x_hubspot_signature_v3 != signature:
-        raise HTTPException(status_code=401, detail=signature)
+        raise HTTPException(status_code=401, detail="The request is not from the right portal.")
 
 
 async def V3_signature(request: Request):
