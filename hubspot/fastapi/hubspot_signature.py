@@ -4,7 +4,7 @@ import os
 import hmac
 from base64 import b64encode
 from hashlib import sha256
-from fastapi import HTTPException, Header, Request
+from fastapi import HTTPException, Header, Request, status
 
 
 async def verify_hubspot_signature(request: Request, x_hubspot_signature_v3: str = Header()):
@@ -12,14 +12,14 @@ async def verify_hubspot_signature(request: Request, x_hubspot_signature_v3: str
     # print(x_hubspot_signature_v3)
     signature = await V3_signature(request)
     if signature == None:
-        raise HTTPException(status_code=401, detail="This Request is from more than 5 minutes ago")
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="This Request is from more than 30 seconds ago")
     elif x_hubspot_signature_v3 != signature:
-        raise HTTPException(status_code=401, detail="The request is not from the right portal.")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="The request is not from the right portal.")
 
 
 async def V3_signature(request: Request):
     hub_time_signature = request.headers["X-HubSpot-Request-Timestamp"]
-    if datetime.fromtimestamp(int(hub_time_signature[:-3])) < datetime.now() + timedelta(minutes=-5):
+    if datetime.fromtimestamp(int(hub_time_signature[:-3])) < datetime.now() + timedelta(seconds=-30):
         return None
 
     client_secret = os.getenv("CLIENT_SECRET")
