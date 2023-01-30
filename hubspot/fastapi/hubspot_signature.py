@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
-import json
 import os
 import hmac
 from base64 import b64encode
 from hashlib import sha256
+from datetime import datetime, timedelta
 from fastapi import HTTPException, Header, Request, status
 
 
@@ -24,12 +23,14 @@ async def V3_signature(request: Request):
 
     client_secret = os.getenv("CLIENT_SECRET")
     request_method = request.method
+    uri = str(request.url)
+    if "http://" in uri:
+        uri = uri.replace("http", "https")
+
     if request_method == "POST":
-        uri = str(request.url)
         body = await request.body()
         total_string = request_method + uri + body.decode() + hub_time_signature
     else:
-        uri = str(request.url)
         total_string = request_method + uri + hub_time_signature
 
     signature = b64encode(hmac.new(key=bytes(client_secret, "utf-8"), msg=bytes(total_string, "utf-8"), digestmod=sha256).digest()).decode()
