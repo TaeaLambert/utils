@@ -1,5 +1,5 @@
+from typing import Literal
 from pydantic import BaseModel
-from typing import Dict, int, str, Literal
 
 
 class Origin(BaseModel):
@@ -150,10 +150,10 @@ class BaseDropdownRequest(BaseModel):
 
 
 class WorkflowRequest(BaseWorkflowRequest):
-    fields: Dict = None
-    inputFields: Dict = None
+    fields: dict = None
+    inputFields: dict = None
 
 
 class DropdownRequest(BaseDropdownRequest):
-    fields: Dict = None
-    inputFields: Dict = None
+    fields: dict = None
+    inputFields: dict = None
