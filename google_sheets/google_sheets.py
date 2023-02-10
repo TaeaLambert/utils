@@ -1,6 +1,8 @@
+import json
 import gspread
 import settings
 import pandas as pd
+from typing import Literal
 
 
 class google_sheets:
@@ -52,3 +54,24 @@ class google_sheets:
         sh = self.__client.open_by_key(sheet_id)
         worksheet = sh.worksheet(worksheet).format(cell, value)
         return f"{worksheet} cell: {cell} formatted to {value}"
+
+    def set_csv_into_sheet(
+        self,
+        sheet_name: str,
+        worksheet: str,
+        csv_data: list,
+        cell: str = "A1",
+        sort: bool = False,
+        sort_column: int = 1,
+        sort_type: Literal["asc", "des"] = "asc",
+        sort_range: str = "A1:Q50000",
+    ):
+        try:
+            sh = self.__client.open(sheet_name).worksheet(worksheet)
+            sh.clear()
+            sh.update(cell, csv_data)
+            if sort != False:
+                sh.sort((sort_column, sort_type), range=sort_range)
+            return True
+        except Exception as e:
+            raise e

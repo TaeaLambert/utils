@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 class WrikeConfig:
     wrikekey = None
     get_tasks_url = (
-        "https://www.wrike.com/api/v4/tasks?pageSize=1000&fields=" '["customFields","superTaskIds","superParentIds","parentIds"]'
+        "https://www.wrike.com/api/v4/tasks?pageSize=1000&fields=" '["customFields","superTaskIds","superParentIds","parentIds","responsibleIds"]'
     )
     get_folders_url = "https://www.wrike.com/api/v4/folders?fields=[customFields]&project=false"
 
@@ -53,6 +53,38 @@ def get_tasks(wrike_config=None):
             break
 
     return [response_array, formatted_tasks(response_array)]
+
+
+def get_tasks_due_date(wrike_config=None):
+    if wrike_config is None:
+        wrike_config = WrikeConfig()
+    wrike_config.add_params("&dueDate=" + get_wrike_queary_dates_v2())
+    response = requests.get(wrike_config.get_tasks_url, headers=wrike_config.get_header())
+    response_json = response.json()
+    response_array = response_json["data"]
+    i = 1000
+    while True:
+        next_page_token = response_json.get("nextPageToken")
+        if next_page_token:
+            response = requests.get(
+                wrike_config.get_tasks_url + "&nextPageToken=" + next_page_token,
+                headers=wrike_config.get_header(),
+            )
+            response_json = response.json()
+            response_array = response_array + response_json["data"]
+            i += 1000
+        else:
+            break
+
+    return formatted_tasks_v2(response_array)
+
+
+def array_to_string(array: list):
+    string_array = ""
+    for item in array:
+        string_array += f"{item}, "
+
+    return string_array[:-2]
 
 
 def datetor(object: dict, key: str) -> str:
@@ -117,6 +149,36 @@ def formatted_tasks(response_json):
                 "Milestone": datetor_array(task["customFields"], "IEACTPDZJUAC43A3"),
                 "Budget points": float(datetor_array(task["customFields"], "IEACTPDZJUABEXK3")),
                 "Actual points": float(datetor_array(task["customFields"], "IEACTPDZJUAA7YIS")),
+            }
+        )
+    return response_array
+
+
+def formatted_tasks_v2(response_json):
+    response_array = []
+    for task in response_json:
+        response_array.append(
+            {
+                "Task id": task["id"],
+                "Task title": task["title"],
+                "Importance": task["importance"],
+                "Status": task["status"],
+                "Created Date": datetime.strptime(datetor(task, "createdDate"), "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S"),
+                "Updated Date": datetime.strptime(datetor(task, "updatedDate"), "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S"),
+                "Completed Date": datetor(task, "completedDate")
+                if datetor(task, "completedDate") == ""
+                else datetime.strptime(datetor(task, "completedDate"), "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S"),
+                "Due Date": datetor(task["dates"], "due")
+                if datetor(task["dates"], "due") == ""
+                else datetime.strptime(datetor(task["dates"], "due"), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S"),
+                "Start Date": datetime.strptime(datetor(task["dates"], "start"), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S"),
+                "Dates Type": datetor(task["dates"], "type"),
+                "Permalink": datetor(task, "permalink"),
+                "Resourse Type": datetor_array(task["customFields"], "IEACTPDZJUABKDUX"),
+                "Milestone": datetor_array(task["customFields"], "IEACTPDZJUAC43A3"),
+                "Budget points": float(datetor_array(task["customFields"], "IEACTPDZJUABEXK3")),
+                "Actual points": float(datetor_array(task["customFields"], "IEACTPDZJUAA7YIS")),
+                "Assigned User/s": array_to_string(task["responsibleIds"]),
             }
         )
     return response_array
@@ -198,6 +260,36 @@ def get_contacts(wrike_config=None):
     return response_array
 
 
+def get_contacts_v2(wrike_config=None):
+    if wrike_config is None:
+        wrike_config = WrikeConfig()
+
+    response = requests.get(wrike_config.get_contacts_url, headers=wrike_config.get_header())
+    contact_json = response.json()["data"]
+    response_array = []
+    for contact in contact_json:
+        contact_id = contact["id"]
+        contact_ids = contact["profiles"][0]
+        account_id = contact_ids["accountId"]
+        f_name = "unkown"
+        l_name = "name"
+        if "firstName" in contact:
+            f_name = contact["firstName"]
+
+        if "lastName" in contact:
+            l_name = contact["lastName"]
+
+        # ['IEACTPDZI4NOQZLA']
+        response_array.append(
+            {
+                "Account ID": account_id,
+                "Contact ID": contact_id,
+                "Name": f_name + " " + l_name,
+            }
+        )
+    return response_array
+
+
 def relative_date(years: int = 0, months: int = 0, day: int = 0) -> datetime:
 
     return datetime.today().replace(hour=0, minute=0, second=0, microsecond=0) + relativedelta(
@@ -217,5 +309,21 @@ def get_wrike_queary_dates(ahead: int = 6, past: int = 13) -> str:
         {
             "start": thirteen_month_behind.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "end": six_month_ahead.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+    )
+
+
+def get_wrike_queary_dates_v2(ahead_months: int = 12, ahead_days: int = 0, past_months: int = 0, past_days: int = 7) -> str:
+    """
+    This function takes the number of months ahead and the number of months past
+    Both arguments are positive integers and default to 6 and 13 respectively
+    """
+    print("Getting Wrike query dates...")
+    six_month_ahead = relative_date(months=ahead_months, day=ahead_days)
+    thirteen_month_behind = relative_date(months=-past_months, day=-past_days)
+    return json.dumps(
+        {
+            "start": thirteen_month_behind.strftime("%Y-%m-%d"),
+            "end": six_month_ahead.strftime("%Y-%m-%d"),
         }
     )
