@@ -64,7 +64,7 @@ class google_sheets:
         sort: bool = False,
         sort_column: int = 1,
         sort_type: Literal["asc", "des"] = "asc",
-        sort_range: str = "A1:Q50000",
+        sort_range: str = "A1:S50000",
     ):
         try:
             sh = self.__client.open(sheet_name).worksheet(worksheet)
